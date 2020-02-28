@@ -1,29 +1,60 @@
 package html_ir;
 
+import java.util.Arrays;
+
+/**
+ * @invar  |(getTag() == null) != (getText() == null)
+ * @invar  | getParent() == null || Arrays.stream(getParent().getChildren()).anyMatch(c -> c == this)
+ * @invar  | Arrays.stream(getChildren).allMatch(c -> c != null && c.parent == this)
+ */
+
 public class Node {
+	
+	/**
+	 * @invar Either {@code tag} or {@code text} must be non-null
+	 *      | tag != null || text != null
+	 * @invar Either {@code tag} or {@code text} must be null
+	 *      | tag == null || text == null
+	 * @invar 
+	 *      | (tag == null) == (text != null)
+	 * @invar 
+	 * 		| children != null
+	 * @invar If this node had a parent, this node is among its parent's children
+	 * 		| parent == null || Arrays.stream(parent.children).anyMatch(c -> c == this)
+	 * @invar For each child of this node, the child's parents equals this node
+	 * 		| Arrays.stream(children).alMatch(c -> c != null && c.parent == this)
+	 */
 	
 	private String tag;
 	private String text;
-	private Node firstChild;
-	private Node lastChild;
-	private Node nextSibling;
-	private Node PreviousSibling;
 	private Node parent;
+	private Node[] children;
+	
+	public Node getParent() {return parent;}
+	public String getTag() {return tag;}
+	
+	public String getText() {return text;}
+	
+	public Node[] getChildren() {
+		return Arrays.copyOf(children, children.length);
+		// return children; FOUT: REPRESENTATION EXPOSURE
+	}
 
 	public Node(String tag, String text) {
 		this.tag = tag;
 		this.text = text;
+		this.children = new Node[0];
 	}
 	
+
+	
+	
+	
 	public void addChild(Node child) {
-		if (firstChild != null) {
-			lastChild.nextSibling = child;
-			child.PreviousSibling = lastChild;
-			lastChild = child;
-		} else {
-			firstChild = child;
-			lastChild = child;
-		}
+		Node[] New_children = new Node[children.length + 1];
+		System.arraycopy(children, 0, New_children, 0, children.length);
+		New_children[children.length] = child;
+		children = New_children;
 		child.parent = this;
 //			Node nextChild = firstChild;
 //			while (nextChild.nextSibling != null)
@@ -36,28 +67,14 @@ public class Node {
 	}
 	
 	public void removeChild(Node child) {
-		if (child.PreviousSibling != null)
-			child.PreviousSibling.nextSibling = child.nextSibling;
-
-		else 
-			firstChild = child.nextSibling;
-		if (child.nextSibling != null)
-			child.nextSibling.PreviousSibling = child.PreviousSibling;
-		else
-			lastChild = child.PreviousSibling;
-		child.nextSibling = null;
-		child.PreviousSibling = null;
+		Node[] newChildren = new Node[children.length -1];
+		int index = 0;
+		while (children[index] != child)
+			index++;
+		System.arraycopy(children, 0, newChildren, 0, index);
+		System.arraycopy(children, index+1, newChildren, index, children.length - index - 1);
+		children = newChildren;
 		child.parent = null;
-//		if (firstChild == child) {
-//			firstChild = firstChild.nextSibling;
-//			if (firstChild == null)
-//				lastChild = null;
-//			Node currentChild = firstChild;
-//			while (currentChild.nextSibling != child)
-//				currentChild = currentChild.nextSibling;
-//			if (currentChild.nextSibling.nextSibling == null)
-//				lastChild = currentChild;
-//			currentChild.nextSibling = currentChild.nextSibling.nextSibling;
 
 	}
 	
@@ -71,10 +88,11 @@ public class Node {
 		if (text != null)
 			return text;
 		String result = "<" + tag + ">";
-		Node child = firstChild;
-		while (child != null) {
+		for (Node child : children) {
+		// for (int i = 0; i < children.length; i++) {
+//			result += children[i].toString();
+			
 			result += child.toString();
-			child = child.nextSibling;
 		}
 		result += "</" + tag + ">";
 		return result;
